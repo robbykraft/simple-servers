@@ -1,10 +1,13 @@
 # simple web servers on MacOS
 
-some simple web servers in different languages. for learning purposes. **these are not safe or secure**.
+simple web servers in different languages. **these are not safe or secure**.
 
 ## in C
 
-[source: Nir Lichtman](https://www.youtube.com/watch?v=2HrYIl6GpYg)
+sources
+
+- [Nir Lichtman](https://www.youtube.com/watch?v=2HrYIl6GpYg)
+- [Jeffrey Yu](https://dev.to/jeffreythecoder/how-i-built-a-simple-http-server-from-scratch-using-c-739)
 
 ### usage
 
