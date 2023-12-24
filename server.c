@@ -53,6 +53,37 @@ void make_http_response(
 	close(file_fd);
 }
 
+void handle_client_request(void *arg) {
+	int client_fd = *((int*)arg);
+	char buffer[BUFFER_SIZE] = {0};
+	ssize_t bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0);
+
+	if (bytes_received <= 0) {
+		close(client_fd);
+		// free(buffer);
+		return;
+	}
+	// printf("%s\n", buffer);
+
+	// http request will look like: GET /file.html ......
+	// skip the "GET /"
+	char* f = buffer + 5;
+
+	// find the first space (after the file path)
+	// set it to a null terminator
+	*strchr(f, ' ') = 0;
+
+	char *response = (char*)malloc(BUFFER_SIZE * sizeof(char) * 2);
+	size_t response_length;
+
+	make_http_response(f, response, &response_length);
+	send(client_fd, response, response_length, 0);
+	free(response);
+
+	// close the client connection and the host socket
+	close(client_fd);
+}
+
 int main() {
 	int server_fd;
 
@@ -76,8 +107,6 @@ int main() {
 	listen(server_fd, 10);
 	printf("server started...\n");
 
-	// loop start here
-
 	while(1) {
 		// the last two params tell us who is connecting
 		// accept will return the socket of the client
@@ -87,27 +116,8 @@ int main() {
 			// continue;
 			return 1;
 		}
-		char buffer[256] = {0};
-		recv(client_fd, buffer, 256, 0);
-		// printf("%s\n", buffer);
 
-		// http request will look like: GET /file.html ......
-		// skip the "GET /"
-		char* f = buffer + 5;
-
-		// find the first space (after the file path)
-		// set it to a null terminator
-		*strchr(f, ' ') = 0;
-
-		char *response = (char*)malloc(BUFFER_SIZE * sizeof(char) * 2);
-		size_t response_length;
-
-		make_http_response(f, response, &response_length);
-		send(client_fd, response, response_length, 0);
-		free(response);
-
-		// close the client connection and the host socket
-		close(client_fd);
+		handle_client_request(&client_fd);
 	}
 
 	close(server_fd);
