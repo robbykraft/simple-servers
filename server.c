@@ -8,8 +8,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
-#define BUFFER_SIZE 1000000
+#define BUFFER_SIZE 100000
 
 void make_http_response(
 	const char *file_name,
@@ -53,15 +54,15 @@ void make_http_response(
 	close(file_fd);
 }
 
-void handle_client_request(void *arg) {
-	int client_fd = *((int*)arg);
+void *handle_client_request(void *arg) {
+	int client_fd = *((int *)arg);
 	char buffer[BUFFER_SIZE] = {0};
 	ssize_t bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0);
 
 	if (bytes_received <= 0) {
 		close(client_fd);
-		// free(buffer);
-		return;
+		free(arg); // free client_fd
+		return NULL;
 	}
 	// printf("%s\n", buffer);
 
@@ -82,6 +83,8 @@ void handle_client_request(void *arg) {
 
 	// close the client connection and the host socket
 	close(client_fd);
+	free(arg); // free client_fd
+	return NULL;
 }
 
 int main() {
@@ -110,14 +113,17 @@ int main() {
 	while(1) {
 		// the last two params tell us who is connecting
 		// accept will return the socket of the client
-		int client_fd;
-		if ((client_fd = accept(server_fd, 0, 0)) < 0) {
+		// "client_fd" will be freed inside the thread
+		int *client_fd = malloc(sizeof(int));
+		if ((*client_fd = accept(server_fd, 0, 0)) < 0) {
 			printf("client connection failed\n");
-			// continue;
-			return 1;
+			continue;
 		}
+		printf("new client %i\n", *client_fd);
 
-		handle_client_request(&client_fd);
+		pthread_t thread_id;
+		pthread_create(&thread_id, 0, handle_client_request, (void*)client_fd);
+		pthread_detach(thread_id);
 	}
 
 	close(server_fd);
